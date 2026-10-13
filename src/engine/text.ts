@@ -92,7 +92,7 @@ export class Text extends Renderable {
     const total = lines.length * m.height;
     let y = oy + this.p.y;
     if (this.v_alignment === 1) y += Math.floor((this.height - total) / 2);
-    else if (this.v_alignment === 2) y += this.height - total;
+    else if (this.v_alignment === 2) y += this.height - total + 1;
     const r = (this.color >>> 24) & 255, g = (this.color >>> 16) & 255, b = (this.color >>> 8) & 255;
     const rgb = (r << 16) | (g << 8) | b;
     for (const line of lines) {

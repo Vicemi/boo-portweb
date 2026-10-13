@@ -9,6 +9,12 @@ export class Framebuffer {
   /** the clip rectangle: nothing outside is drawn */
   cx0 = 0; cy0 = 0; cx1 = SCREEN_W; cy1 = SCREEN_H;
 
+  /** the original draws into a 16 bit (RGB565) screen: the low bits of every channel are gone */
+  quantize565(): void {
+    const d = this.data;
+    for (let i = 0; i < d.length; i += 4) { d[i] &= 0xf8; d[i + 1] &= 0xfc; d[i + 2] &= 0xf8; }
+  }
+
   clear(r = 0, g = 0, b = 0): void {
     const d = this.data;
     for (let i = 0; i < d.length; i += 4) { d[i] = r; d[i + 1] = g; d[i + 2] = b; d[i + 3] = 255; }

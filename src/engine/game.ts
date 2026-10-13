@@ -62,6 +62,7 @@ export class Game extends LObj {
   svc: Services;
   mainStage: Stage;
   textFactory = new TextFactory();
+  rgb565 = true;
   exited = false;
   frame = 0;
   errors: string[] = [];
@@ -143,8 +144,8 @@ export class Game extends LObj {
   static oids = 0;
 
   /** runs src/start.lua (bytecode of the original) */
-  boot(): void {
-    const b = this.opts.files.read('src/start.lua');
+  boot(script?: Uint8Array): void {
+    const b = script ?? this.opts.files.read('src/start.lua');
     if (!b) throw new Error('src/start.lua not found');
     const fn = isBytecode(b) ? this.L.closureOf(undump(b)) : compileChunk(this.L, new TextDecoder('latin1').decode(b), '@src/start.lua');
     const r = this.L.pcall(fn, []);
@@ -180,6 +181,7 @@ export class Game extends LObj {
   render(): Framebuffer {
     this.fb.clear(0, 0, 0);
     this.renderer.main.draw({ fb: this.fb }, 0, 0);
+    if (this.rgb565) this.fb.quantize565();
     return this.fb;
   }
 }

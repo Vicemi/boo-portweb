@@ -20,7 +20,7 @@ export class CanvasRasterizer implements GlyphRasterizer {
     const g = c.getContext('2d');
     g.font = `${size}px "${family}"`;
     g.textBaseline = 'alphabetic';
-    const adv = Math.ceil(g.measureText(ch).width - 1e-6);
+    const adv = Math.round(g.measureText(ch).width);
     g.fillStyle = '#fff';
     const baseY = pad + Math.ceil(size);
     g.fillText(ch, pad, baseY);
