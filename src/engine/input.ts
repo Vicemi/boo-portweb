@@ -48,12 +48,12 @@ export class InputSystem extends LObj {
     for (const o of l) { if (o.held.delete(code)) o.releaseEvt = true; }
   }
   releaseAll(): void { for (const o of this.inputs.values()) { if (o.held.size) o.releaseEvt = true; o.held.clear(); } }
-  /** once per logic step */
+  /** once per logic step. Measured in the original: `down` is true only on the step the key went down, `pressed` while it is held, `up` only on the step it was released */
   update(): void {
     for (const o of this.inputs.values()) {
       const now = o.held.size > 0;
-      o.down = now;
-      o.pressed = (now && !o.prevDown) || o.pressEvt;
+      o.down = (now && !o.prevDown) || o.pressEvt;
+      o.pressed = now || o.pressEvt;
       o.up = (!now && o.prevDown) || o.releaseEvt;
       o.prevDown = now;
       o.pressEvt = false; o.releaseEvt = false;
