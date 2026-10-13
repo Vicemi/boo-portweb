@@ -14,15 +14,16 @@ interface Members {
 export class LObj extends Userdata {
   fields: LuaTable | null = null;
   static members: Members = { methods: {}, get: {}, set: {} };
-  static bind(cls: typeof LObj, spec: Partial<Members>): void {
+  static bind(cls: Function, spec: Partial<Members>): void {
     // every class has its own table that inherits from the one of its parent class
-    if (!Object.prototype.hasOwnProperty.call(cls, 'members')) {
-      const parent = (Object.getPrototypeOf(cls) as typeof LObj).members;
-      cls.members = { methods: Object.create(parent.methods), get: Object.create(parent.get), set: Object.create(parent.set) };
+    const c = cls as any;
+    if (!Object.prototype.hasOwnProperty.call(c, 'members')) {
+      const parent = (Object.getPrototypeOf(c) as typeof LObj).members;
+      c.members = { methods: Object.create(parent.methods), get: Object.create(parent.get), set: Object.create(parent.set) };
     }
-    Object.assign(cls.members.methods, spec.methods ?? {});
-    Object.assign(cls.members.get, spec.get ?? {});
-    Object.assign(cls.members.set, spec.set ?? {});
+    Object.assign(c.members.methods, spec.methods ?? {});
+    Object.assign(c.members.get, spec.get ?? {});
+    Object.assign(c.members.set, spec.set ?? {});
   }
   private get M(): Members { return (this.constructor as typeof LObj).members; }
   lget(key: LuaValue): LuaValue {

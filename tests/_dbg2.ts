@@ -1,0 +1,11 @@
+import { readFileSync } from 'node:fs';
+import { parseTmx } from '../src/engine/tmx';
+import { CollisionMap, CollisionSystem, Collidable, AABB, COLLISION, sweep, type Solid } from '../src/engine/collision';
+import { Vec2 } from '../src/engine/scene';
+const tmx = parseTmx(readFileSync('F:/Games/Boo-PortWeb/Boo.activity/assets/maps/_flat_test.tmx', 'utf8'));
+const col = tmx.layers.find(l => l.name === 'collisions')!;
+const map = new CollisionMap(col.width, col.height, Uint8Array.from(col.data));
+const a = { x0: 729.8, y0: 380.2, x1: 730.8, y1: 381.2 };
+const out: Solid[] = [];
+map.solids({ x0: 689, y0: 379, x1: 731, y1: 392 }, 0, 0, out);
+for (const s of out) console.log(JSON.stringify(s.pts), sweep(a, -40, 10, s));

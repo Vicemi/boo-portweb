@@ -14,6 +14,7 @@ xdotool mousemove 400 300
 WID=$(xdotool search --onlyvisible --class . 2>/dev/null | head -1)
 [ -n "$WID" ] && xdotool windowfocus $WID
 SECS=$2; shift; shift
+if [ -n "$SHOTS" ]; then ( for sh in $SHOTS; do t=${sh%%:*}; n=${sh#*:}; sleep $t; import -window root -crop 600x450+100+75 +repage /mnt/f/Games/Boo-PortWeb/boo-portweb/research/probe/$n.png 2>/dev/null; done ) & fi
 for k in "$@"; do sleep 1.3; echo "$(date +%s.%N) send $k" >> /root/probe_keys.txt; xdotool keydown $k; sleep 0.2; xdotool keyup $k; done
 sleep $SECS
 kill $BP; pkill Xvfb
