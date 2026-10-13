@@ -65,7 +65,7 @@ function walkMovement(self: LuaTable): void {
   if (ttc < 0) { speed.x = f32(-speed.x); sinSign = f32(-sinSign); ttc = 2; self.set('sinSign', sinSign); }
   self.set('timeToChangeDirection', ttc);
   const x = e.p.x + speed.x * DT + repel.x;
-  const y = 2 * Math.sin(sinSign * ttc) + e.p.y + repel.y;
+  const y = 2 * f32(Math.sin(f32(sinSign * ttc))) + e.p.y + repel.y;
   moveTo(self, e, x, y);
 }
 

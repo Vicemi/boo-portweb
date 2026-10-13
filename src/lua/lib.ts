@@ -34,13 +34,14 @@ class GlibcRand {
     const r = new Array<number>(34);
     r[0] = seed | 0;
     for (let i = 1; i < 31; i++) {
-      const hi = Math.floor(r[i - 1] / 127773), lo = r[i - 1] % 127773;
+      // 16807 * r[i-1] mod 2147483647 without overflow (Schrage), like glibc
+      const hi = Math.trunc(r[i - 1] / 127773), lo = r[i - 1] % 127773;
       let w = 16807 * lo - 2836 * hi;
       if (w < 0) w += 2147483647;
       r[i] = w;
     }
-    this.r = [];
-    for (let i = 0; i < 31; i++) this.r.push(r[i] | 0);
+    r[31] = r[0]; r[32] = r[1]; r[33] = r[2];
+    this.r = r.map((v) => v | 0);
     this.i = 0;
     // the first 310 outputs are discarded
     for (let k = 0; k < 310; k++) this.next();

@@ -241,21 +241,21 @@ export class CollisionSystem extends LObj {
     const p = c.pos;
     if (!p) return new Vec2(0, 0);
     const sx = p.x, sy = p.y;
-    if (this.stuck(c)) { p.x += dx; p.y += dy; return new Vec2(dx, dy); }
+    if (this.stuck(c)) { p.x = Math.fround(p.x + dx); p.y = Math.fround(p.y + dy); return new Vec2(dx, dy); }
     for (let it = 0; it < MAX_ITER && (dx !== 0 || dy !== 0); it++) {
       const f = this.firstHit(c, dx, dy);
-      if (!f) { p.x += dx; p.y += dy; break; }
+      if (!f) { p.x = Math.fround(p.x + dx); p.y = Math.fround(p.y + dy); break; }
       const { t, nx, ny } = f.hit;
       const len = Math.hypot(dx, dy);
       const back = Math.min(SKIN, t * len);     // it never goes back further than where it started
-      p.x += dx * t - (dx / len) * back;
-      p.y += dy * t - (dy / len) * back;
+      p.x = Math.fround(p.x + dx * t - (dx / len) * back);
+      p.y = Math.fround(p.y + dy * t - (dy / len) * back);
       let rx = dx * (1 - t), ry = dy * (1 - t);
       const dn = rx * nx + ry * ny;
       rx -= nx * dn; ry -= ny * dn;
       dx = rx; dy = ry;
     }
-    return new Vec2(p.x - sx, p.y - sy);
+    return new Vec2(Math.fround(p.x - sx), Math.fround(p.y - sy));
   }
 
   /** moves c by (dx, dy) and stops at the first contact: true if it hit something */
@@ -263,11 +263,11 @@ export class CollisionSystem extends LObj {
     const p = c.pos;
     if (!p) return false;
     const f = this.stuck(c) ? null : this.firstHit(c, dx, dy);
-    if (!f) { p.x += dx; p.y += dy; return false; }
+    if (!f) { p.x = Math.fround(p.x + dx); p.y = Math.fround(p.y + dy); return false; }
     const len = Math.hypot(dx, dy);
     const back = Math.min(SKIN, f.hit.t * len);
-    p.x += dx * f.hit.t - (dx / len) * back;
-    p.y += dy * f.hit.t - (dy / len) * back;
+    p.x = Math.fround(p.x + dx * f.hit.t - (dx / len) * back);
+    p.y = Math.fround(p.y + dy * f.hit.t - (dy / len) * back);
     return true;
   }
 
@@ -277,14 +277,14 @@ export class CollisionSystem extends LObj {
     const p = c.pos;
     if (!p) return false;
     const f = this.stuck(c) ? null : this.firstHit(c, dx, dy);
-    if (!f) { p.x += dx; p.y += dy; return false; }
+    if (!f) { p.x = Math.fround(p.x + dx); p.y = Math.fround(p.y + dy); return false; }
     const owner = f.owner.owner;
     const pushable = owner && owner.parent ? owner.parent.comps.some(k => k instanceof PushableComponent) : false;
     if (!pushable || !owner) {
       const len = Math.hypot(dx, dy);
       const back = Math.min(SKIN, f.hit.t * len);
-      p.x += dx * f.hit.t - (dx / len) * back;
-      p.y += dy * f.hit.t - (dy / len) * back;
+      p.x = Math.fround(p.x + dx * f.hit.t - (dx / len) * back);
+      p.y = Math.fround(p.y + dy * f.hit.t - (dy / len) * back);
       const rx = dx * (1 - f.hit.t), ry = dy * (1 - f.hit.t);
       const dn = rx * f.hit.nx + ry * f.hit.ny;
       this.slide(c, rx - f.hit.nx * dn, ry - f.hit.ny * dn);

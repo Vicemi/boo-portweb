@@ -11,7 +11,7 @@ const shots = new Set(args.filter(a => /^\d+$/.test(a)).map(Number));
 const keys = args.filter(a => a.includes(':')).map(a => { const [t, c] = a.split(':'); return { t: +t, c }; });
 mkdirSync('research/boot', { recursive: true });
 const store = new Map<string, string>();
-const g = new Game({ files: folderFiles(ROOT), rast: new CanvasRasterizer(), userRead: (p) => store.get(p), userWrite: (p, d) => { store.set(p, d); }, print: (s) => console.log(s) });
+const g = new Game({ files: folderFiles(process.env.ROOT ?? ROOT), rast: new CanvasRasterizer(), userRead: (p) => store.get(p), userWrite: (p, d) => { store.set(p, d); }, print: (s) => console.log(s) });
 if (process.env.TRACE_REQ) { const rq = g.L.globals.get('require'); g.L.globals.set('require', (...a: any[]) => { console.log('require', a[0]); return g.L.callArr(rq, a); }); }
 if (process.env.START) { const { readFileSync } = await import('node:fs'); g.boot(new Uint8Array(readFileSync(process.env.START))); } else g.boot();
 const soak = +(process.env.SOAK ?? 0);
@@ -25,5 +25,7 @@ for (let i = 1; i <= total; i++) {
   if (shots.has(i)) { savePng(g.render(), `research/boot/t${i}.png`); console.log('shot', i); }
 }
 if (process.env.EVAL) { const { compileChunk } = await import('../src/lua/compile'); const r = g.L.pcall(compileChunk(g.L, process.env.EVAL, '=eval'), []); console.log('eval:', r.ok ? r.r : r.err); }
+if (process.env.DUMP) { const { writeFileSync } = await import('node:fs'); writeFileSync(process.env.DUMP_TO ?? 'research/boot/dump.txt', store.get(process.env.DUMP) ?? '', 'latin1'); }
+console.log('store keys:', [...store.keys()].join(','));
 console.log('ticks done, errors:', g.errors.length);
 for (const e of new Set(g.errors.map(x => x.split(String.fromCharCode(10)).slice(0, 3).join(' | ')))) console.log('ERR', e);
