@@ -366,7 +366,7 @@ function worldRect(shape: Shape | null, e: Entity | null): Rect {
 /** an area that reports to the triggerables that enter and leave it. The detection happens after the components of its logic node have updated */
 export class Trigger extends NativeComponent {
   static luaName = '_Trigger';
-  constructor(public logic: LogicNode, public shape: Shape | null) { super(); }
+  constructor(public logic: LogicNode, public shape: Shape | null) { super(); this.compId = 'trigger'; }
   addToGame(): void { this.logic.addPost(this); }
   removeFromGame(): void { this.logic.removePost(this); }
   detect(): void {
@@ -383,7 +383,7 @@ export class Trigger extends NativeComponent {
 export class Triggerable extends NativeComponent {
   static luaName = '_Triggerable';
   inside = new Set<Trigger>();
-  constructor(public shape: Shape | null) { super(); }
+  constructor(public shape: Shape | null) { super(); this.compId = 'triggerable'; }
   addToGame(): void { if (!triggerables.includes(this)) triggerables.push(this); }
   removeFromGame(): void {
     const i = triggerables.indexOf(this);

@@ -118,6 +118,7 @@ export class Luabind {
       (C as any).isClass = true;
       this.setupClassTable(C, null);
       env.set(name, C);
+      if (env !== L.globals) L.globals.set(name, C);       // (luabind also leaves the class in the globals)
       const stage2 = ((_stage: any, ...bases: LuaTable[]) => {
         const first = bases.length ? bases[0] : null;
         if (first !== null && !(first instanceof LuaTable)) throw new LuaError(L.where() + 'class: base must be a class');

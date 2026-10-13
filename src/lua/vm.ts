@@ -413,7 +413,7 @@ export class LuaState {
           if (t instanceof LuaTable) {
             const v = t.get(key);
             regs[a] = v !== undefined || t.meta === null ? v : this.index(t, key);
-          } else regs[a] = this.index(t, key);
+          } else { if (!(t instanceof Userdata) && this.getmeta(t) === null) this.rt(`attempt to index ${callName(f, pc - 1, i >>> 23)}a ${luaType(t)} value`); regs[a] = this.index(t, key); }
           break;
         }
         case 7: { // SETGLOBAL
@@ -448,7 +448,7 @@ export class LuaState {
           if (t instanceof LuaTable) {
             const v = t.get(key);
             regs[a] = v !== undefined || t.meta === null ? v : this.index(t, key);
-          } else regs[a] = this.index(t, key);
+          } else { if (!(t instanceof Userdata) && this.getmeta(t) === null) this.rt(`attempt to index ${callName(f, pc - 1, i >>> 23)}a ${luaType(t)} value`); regs[a] = this.index(t, key); }
           break;
         }
         case 12: { // ADD
@@ -503,7 +503,14 @@ export class LuaState {
         case 21: { // CONCAT
           const b = i >>> 23, c = (i >>> 14) & 0x1ff;
           let acc = regs[c];
-          for (let j = c - 1; j >= b; j--) acc = this.concat(regs[j], acc);
+          for (let j = c - 1; j >= b; j--) {
+            const x = regs[j], tx = typeof x, ta = typeof acc;
+            if (!((tx === 'string' || tx === 'number') && (ta === 'string' || ta === 'number')) && this.getmeta(x)?.getStr('__concat') === undefined && this.getmeta(acc)?.getStr('__concat') === undefined) {
+              const badReg = (tx === 'string' || tx === 'number') ? c : j;
+              this.rt(`attempt to concatenate ${callName(f, pc - 1, badReg < j + 1 && badReg === j ? j : badReg)}a ${luaType(badReg === j ? x : acc)} value`);
+            }
+            acc = this.concat(x, acc);
+          }
           regs[a] = acc;
           break;
         }
@@ -534,13 +541,13 @@ export class LuaState {
         case 26: { // TEST
           const x = regs[a];
           const isFalse = x === undefined || x === false;
-          if (isFalse !== (((i >>> 14) & 0x1ff) !== 0)) pc++; else pc += (code[pc] >>> 14) - 131071 + 1;
+          if (isFalse === (((i >>> 14) & 0x1ff) !== 0)) pc++; else pc += (code[pc] >>> 14) - 131071 + 1;
           break;
         }
         case 27: { // TESTSET
           const x = regs[i >>> 23];
           const isFalse = x === undefined || x === false;
-          if (isFalse !== (((i >>> 14) & 0x1ff) !== 0)) pc++;
+          if (isFalse === (((i >>> 14) & 0x1ff) !== 0)) pc++;
           else { regs[a] = x; pc += (code[pc] >>> 14) - 131071 + 1; }
           break;
         }
@@ -558,7 +565,7 @@ export class LuaState {
           if (fn instanceof LuaClosure) target = fn;
           else if (typeof fn !== 'function') {
             const h = this.getmeta(fn)?.getStr('__call');
-            if (h === undefined) this.rt(`attempt to call a ${luaType(fn)} value`);
+            if (h === undefined) this.rt(`attempt to call ${callName(f, pc - 1, a)}a ${luaType(fn)} value`);
             if (h instanceof LuaClosure) { target = h; targs = [fn, ...args]; }
             else {
               const r = h(fn, ...args);
@@ -744,4 +751,23 @@ function idOf(o: object): number {
   let v = ids.get(o);
   if (!v) { v = (idCounter += 0x18); ids.set(o, v); }
   return v;
+}
+
+/** "global 'x' (" style description of the called register for error messages (like luaG_typeerror) */
+function callName(f: Frame, pc: number, reg: number): string {
+  const p = f.cl.proto, code = p.code;
+  const act = p.locvars.filter(l => l.startpc <= pc && pc < l.endpc);
+  if (reg < act.length) return `local '${act[reg].name}' `;
+  const kname = (rk: number): string | null => { const v = rk & 256 ? p.k[rk & 255] : null; return typeof v === 'string' ? v : null; };
+  for (let j = pc - 1; j >= 0; j--) {
+    const i = code[j], op = i & 0x3f, a = (i >>> 6) & 0xff;
+    if (a !== reg) continue;
+    if (op === 5) return `global '${String(p.k[i >>> 14])}' `;
+    if (op === 6) { const n = kname((i >>> 14) & 0x1ff); return n ? `field '${n}' ` : ''; }
+    if (op === 11) { const n = kname((i >>> 14) & 0x1ff); return n ? `method '${n}' ` : ''; }
+    if (op === 4) return `upvalue '${p.upvalueNames[i >>> 23] ?? '?'}' `;
+    if (op === 0) { const lv = p.locvars.filter(l => l.startpc <= j && j < l.endpc)[i >>> 23]; return lv ? `local '${lv.name}' ` : ''; }
+    return '';
+  }
+  return '';
 }

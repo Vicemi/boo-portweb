@@ -91,7 +91,7 @@ export class RenderComponent extends NativeComponent {
   node = new RenderNode();
   images = new Map<string, Renderable>();
   animator: Animator;
-  constructor(public parentNode: RenderNode | null, public logic: LogicNode) { super(); this.animator = new Animator(this.node); }
+  constructor(public parentNode: RenderNode | null, public logic: LogicNode) { super(); this.compId = 'render'; this.animator = new Animator(this.node); }
   addToGame(): void {
     if (this.parentNode) this.parentNode.children.addChild(this.node);
     this.node.foreign = this.parent ? this.parent.p : null;

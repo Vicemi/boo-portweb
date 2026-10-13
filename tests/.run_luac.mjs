@@ -815,7 +815,14 @@ var LuaState = class {
         case 21: {
           const b = i >>> 23, c = i >>> 14 & 511;
           let acc = regs[c];
-          for (let j = c - 1; j >= b; j--) acc = this.concat(regs[j], acc);
+          for (let j = c - 1; j >= b; j--) {
+            const x = regs[j], tx = typeof x, ta = typeof acc;
+            if (!((tx === "string" || tx === "number") && (ta === "string" || ta === "number")) && this.getmeta(x)?.getStr("__concat") === void 0 && this.getmeta(acc)?.getStr("__concat") === void 0) {
+              const badReg = tx === "string" || tx === "number" ? c : j;
+              this.rt(`attempt to concatenate ${callName(f, pc - 1, badReg < j + 1 && badReg === j ? j : badReg)}a ${type(badReg === j ? x : acc)} value`);
+            }
+            acc = this.concat(x, acc);
+          }
           regs[a] = acc;
           break;
         }
@@ -849,14 +856,14 @@ var LuaState = class {
         case 26: {
           const x = regs[a];
           const isFalse2 = x === void 0 || x === false;
-          if (isFalse2 !== ((i >>> 14 & 511) !== 0)) pc++;
+          if (isFalse2 === ((i >>> 14 & 511) !== 0)) pc++;
           else pc += (code[pc] >>> 14) - 131071 + 1;
           break;
         }
         case 27: {
           const x = regs[i >>> 23];
           const isFalse2 = x === void 0 || x === false;
-          if (isFalse2 !== ((i >>> 14 & 511) !== 0)) pc++;
+          if (isFalse2 === ((i >>> 14 & 511) !== 0)) pc++;
           else {
             regs[a] = x;
             pc += (code[pc] >>> 14) - 131071 + 1;
@@ -883,7 +890,7 @@ var LuaState = class {
           if (fn instanceof LuaClosure) target = fn;
           else if (typeof fn !== "function") {
             const h = this.getmeta(fn)?.getStr("__call");
-            if (h === void 0) this.rt(`attempt to call a ${type(fn)} value`);
+            if (h === void 0) this.rt(`attempt to call ${callName(f, pc - 1, a)}a ${type(fn)} value`);
             if (h instanceof LuaClosure) {
               target = h;
               targs = [fn, ...args];
@@ -1118,6 +1125,35 @@ function idOf(o) {
     ids.set(o, v);
   }
   return v;
+}
+function callName(f, pc, reg) {
+  const p = f.cl.proto, code = p.code;
+  const act = p.locvars.filter((l) => l.startpc <= pc && pc < l.endpc);
+  if (reg < act.length) return `local '${act[reg].name}' `;
+  const kname = (rk) => {
+    const v = rk & 256 ? p.k[rk & 255] : null;
+    return typeof v === "string" ? v : null;
+  };
+  for (let j = pc - 1; j >= 0; j--) {
+    const i = code[j], op = i & 63, a = i >>> 6 & 255;
+    if (a !== reg) continue;
+    if (op === 5) return `global '${String(p.k[i >>> 14])}' `;
+    if (op === 6) {
+      const n = kname(i >>> 14 & 511);
+      return n ? `field '${n}' ` : "";
+    }
+    if (op === 11) {
+      const n = kname(i >>> 14 & 511);
+      return n ? `method '${n}' ` : "";
+    }
+    if (op === 4) return `upvalue '${p.upvalueNames[i >>> 23] ?? "?"}' `;
+    if (op === 0) {
+      const lv = p.locvars.filter((l) => l.startpc <= j && j < l.endpc)[i >>> 23];
+      return lv ? `local '${lv.name}' ` : "";
+    }
+    return "";
+  }
+  return "";
 }
 
 // src/lua/strlib.ts

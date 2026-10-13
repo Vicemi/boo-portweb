@@ -44,6 +44,32 @@ export class Framebuffer {
     }
   }
 
+  /** an 8 bit alpha mask painted with one color (anti-aliased glyphs) */
+  blitMask(mask: Uint8Array, mw: number, mh: number, dx: number, dy: number, rgb: number): void {
+    dx = Math.round(dx); dy = Math.round(dy);
+    let sx = 0, sy = 0, sw = mw, sh = mh;
+    if (dx < this.cx0) { const k = this.cx0 - dx; sx += k; sw -= k; dx = this.cx0; }
+    if (dy < this.cy0) { const k = this.cy0 - dy; sy += k; sh -= k; dy = this.cy0; }
+    if (dx + sw > this.cx1) sw = this.cx1 - dx;
+    if (dy + sh > this.cy1) sh = this.cy1 - dy;
+    if (sw <= 0 || sh <= 0) return;
+    const r = (rgb >> 16) & 255, g = (rgb >> 8) & 255, b = rgb & 255;
+    const dst = this.data, W = this.w;
+    for (let y = 0; y < sh; y++) {
+      let s = (sy + y) * mw + sx;
+      let d = ((dy + y) * W + dx) * 4;
+      for (let x = 0; x < sw; x++, s++, d += 4) {
+        const a = mask[s];
+        if (a === 0) continue;
+        if (a === 255) { dst[d] = r; dst[d + 1] = g; dst[d + 2] = b; continue; }
+        const dr = dst[d], dg = dst[d + 1], db = dst[d + 2];
+        dst[d] = dr + (((r - dr) * a) >> 8);
+        dst[d + 1] = dg + (((g - dg) * a) >> 8);
+        dst[d + 2] = db + (((b - db) * a) >> 8);
+      }
+    }
+  }
+
   /** a rectangle of one color with alpha 0..1 */
   fillRect(x: number, y: number, w: number, h: number, rgb: number, alpha: number): void {
     let x0 = Math.max(this.cx0, Math.round(x)), y0 = Math.max(this.cy0, Math.round(y));
