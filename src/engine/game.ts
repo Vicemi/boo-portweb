@@ -146,8 +146,36 @@ export class Game extends LObj {
   }
   static oids = 0;
 
+  /** fixes of the original game, applied (once) when the module that has the code is loaded */
+  private patches: Record<string, string> = {
+    // basement_3 leads to "boss:a" but the boss room has no doors: the original fails to load it. It uses the start point of the room instead
+    'stage_manager.stage_manager': [
+      'local sm = stage_manager',
+      'local orig = sm.setPlayerStartPosition',
+      'sm.setPlayerStartPosition = function(self, aDoorID, aStartPos, aObject)',
+      '  if aDoorID and not aStartPos and self.door_manager and not self.door_manager.doors[aDoorID] then aDoorID = nil end',
+      '  return orig(self, aDoorID, aStartPos, aObject)',
+      'end',
+    ].join(String.fromCharCode(10)),
+  };
+  private installPatches(): void {
+    const L = this.L;
+    const realRequire = L.globals.get('require');
+    L.globals.set('require', ((name: LuaValue) => {
+      const r = L.callArr(realRequire, [name]);
+      const code = typeof name === 'string' ? this.patches[name] : undefined;
+      if (code) {
+        delete this.patches[name as string];
+        const res = L.pcall(compileChunk(L, code, '=patch'), []);
+        if (!res.ok) this.errors.push('patch ' + String(name) + ': ' + String(res.err));
+      }
+      return r;
+    }) as NativeFunction);
+  }
+
   /** runs src/start.lua (bytecode of the original) */
   boot(script?: Uint8Array): void {
+    this.installPatches();
     const b = script ?? this.opts.files.read('src/start.lua');
     if (!b) throw new Error('src/start.lua not found');
     const fn = isBytecode(b) ? this.L.closureOf(undump(b)) : compileChunk(this.L, new TextDecoder('latin1').decode(b), '@src/start.lua');

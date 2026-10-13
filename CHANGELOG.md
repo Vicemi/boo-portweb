@@ -2,6 +2,13 @@
 
 La descripción de cada release de GitHub es la sección de su versión; la versión de escritorio la muestra al jugador cuando hay una actualización.
 
+## 1.0.1
+
+### Correcciones
+- El juego ya no se queda "cargando" al cambiar de nivel: una imagen que falta (por ejemplo la del bebé en sus diálogos) ya no detiene el juego, y las líneas de diálogo vacías esperan la tecla en vez de colgarse.
+- La puerta del sótano 3 al jefe final funcionaba mal (el cuarto del jefe no tiene puertas): ahora entras por su punto de inicio.
+- Comprobado: los 188 diálogos terminan y todas las puertas de los 24 mapas cambian de nivel sin errores (también con todas las misiones cumplidas).
+
 ## 1.0.0
 
 **Primera versión: Boo en el navegador y en Windows, recreado por Vicemi Dev (vicemi.dev).**

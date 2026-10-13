@@ -1,7 +1,7 @@
 {
   "name": "boo-web",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Boo (Trojan Chicken, OLPC / Plan Ceibal) portado a la web: Astro + React + Canvas; el juego original (Lua 5.1) corre en una VM propia",
   "engines": {
     "node": ">=22.12.0"
