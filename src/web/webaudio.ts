@@ -27,17 +27,20 @@ export class WebAudio implements AudioBackend {
   load(path: string, _data: Uint8Array | null, isMusic: boolean): Handle {
     return { url: `${this.base}/${path.replace(/^assets\/sounds\//, '')}`, music: isMusic, buffer: null, loading: null };
   }
+  private cache = new Map<string, Promise<AudioBuffer | null>>();
   fetchBuffer(h: Handle): Promise<void> {
-    if (h.buffer || h.loading) return h.loading ?? Promise.resolve();
-    h.loading = (async () => {
-      try {
-        const data = await (await fetch(h.url)).arrayBuffer();
-        const ctx = this.ctx;
-        if (ctx) h.buffer = await ctx.decodeAudioData(data);
-      } catch (e) { console.warn('sound failed', h.url, e); }
-      h.loading = null;
-    })();
-    return h.loading;
+    if (h.buffer) return Promise.resolve();
+    let p = this.cache.get(h.url);
+    if (!p) {
+      p = (async () => {
+        try {
+          const data = await (await fetch(h.url)).arrayBuffer();
+          return this.ctx ? await this.ctx.decodeAudioData(data) : null;
+        } catch (e) { console.warn('sound failed', h.url, e); return null; }
+      })();
+      this.cache.set(h.url, p);
+    }
+    return p.then((b) => { h.buffer = b; });
   }
   play(handle: unknown, loop: boolean, volume: number): Voice {
     const h = handle as Handle;
