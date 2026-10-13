@@ -35,7 +35,7 @@ export class TextureObj extends Renderable {
   constructor(public tex: Texture) { super(); }
   get w(): number { return this.tex.w; }
   get h(): number { return this.tex.h; }
-  draw(ctx: DrawCtx, ox: number, oy: number): void { ctx.fb.blit(this.tex.bitmap(), 0, 0, this.tex.w, this.tex.h, ox, oy); }
+  draw(ctx: DrawCtx, ox: number, oy: number): void { const b = this.tex.bitmap(); if (b) ctx.fb.blit(b, 0, 0, this.tex.w, this.tex.h, ox, oy); }
 }
 LObj.bind(TextureObj, { get: { w: (s: TextureObj) => s.tex.w, h: (s: TextureObj) => s.tex.h } });
 
@@ -44,7 +44,8 @@ export class Sprite extends Renderable {
   x = 0; y = 0; w = 0; h = 0; trans_x = 0; trans_y = 0;
   constructor(public texture: TextureObj) { super(); this.w = texture.w; this.h = texture.h; }
   draw(ctx: DrawCtx, ox: number, oy: number): void {
-    ctx.fb.blit(this.texture.tex.bitmap(), this.x, this.y, this.w, this.h, Math.round(ox + this.trans_x), Math.round(oy + this.trans_y));
+    const b = this.texture.tex.bitmap();
+    if (b) ctx.fb.blit(b, this.x, this.y, this.w, this.h, Math.round(ox + this.trans_x), Math.round(oy + this.trans_y));
   }
 }
 LObj.bind(Sprite, {

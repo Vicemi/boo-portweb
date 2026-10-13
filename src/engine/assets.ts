@@ -7,7 +7,12 @@ import { Font, type GlyphRasterizer } from './text';
 import { SoundObj, type Mixer } from './audio';
 import { buildMap, parseTmx } from './tilemap';
 
-export interface FileSource { read(path: string): Uint8Array | null }
+export interface FileSource {
+  /** the bytes of a file, or null when it does not exist or has not been downloaded yet */
+  read(path: string): Uint8Array | null;
+  /** the size of an image that may not be downloaded yet */
+  imageSize?(path: string): [number, number] | null;
+}
 
 export interface Services {
   files: FileSource;
@@ -36,10 +41,11 @@ export class AssetStorage extends LObj {
     let t = this.svc.textures.get(key);
     if (!t) {
       const bytes = this.svc.files.read(p);
-      if (!bytes) throw new Error('texture not found: ' + p);
-      const [w, h] = pngSize(bytes);
+      const size = bytes ? pngSize(bytes) : this.svc.files.imageSize?.(p) ?? null;
+      if (!size) throw new Error('texture not found: ' + p);
+      const [w, h] = size;
       const ck = trans ? parseInt(trans, 16) : null;
-      t = new Texture(p, w, h, () => decodePng(this.svc.files.read(p)!), ck);
+      t = new Texture(p, w, h, () => { const b = this.svc.files.read(p); return b ? decodePng(b) : null; }, ck);
       this.svc.textures.set(key, t);
     }
     return t;

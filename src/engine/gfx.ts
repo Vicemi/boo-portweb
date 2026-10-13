@@ -101,10 +101,12 @@ export class Framebuffer {
 /** an image of the game: its size is known right away, the pixels are decoded when it is first drawn */
 export class Texture {
   bmp: Bitmap | null = null;
-  constructor(public path: string, public w: number, public h: number, private loader: () => Bitmap, public colorKey: number | null = null) {}
-  bitmap(): Bitmap {
+  /** `loader` returns null while the file has not arrived yet (the texture then draws nothing and is tried again on the next frame) */
+  constructor(public path: string, public w: number, public h: number, private loader: () => Bitmap | null, public colorKey: number | null = null) {}
+  bitmap(): Bitmap | null {
     if (this.bmp === null) {
       const b = this.loader();
+      if (b === null) return null;
       if (this.colorKey !== null) {
         const k = this.colorKey, d = b.data;
         for (let i = 0; i < d.length; i += 4) if (d[i] === ((k >> 16) & 255) && d[i + 1] === ((k >> 8) & 255) && d[i + 2] === (k & 255)) d[i + 3] = 0;

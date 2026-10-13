@@ -1,0 +1,48 @@
+---
+import BooGame from '../components/BooGame.tsx';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="description" content="Boo: el juego de fantasmas de Trojan Chicken (OLPC / Plan Ceibal), portado a la web." />
+    <meta name="theme-color" content="#000000" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <link rel="apple-touch-icon" href="/icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Boo</title>
+  </head>
+  <body>
+    <BooGame client:only="react" />
+  </body>
+</html>
+
+<style is:global>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
+  .boo-stage { position: fixed; inset: 0; height: 100vh; height: 100dvh; background: #000; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  .boo-canvas { display: block; width: min(100vw, calc(100dvh * 4 / 3)); height: min(100dvh, calc(100vw * 3 / 4)); outline: none; touch-action: none; background: #000; }
+  .boo-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; color: #e8f0c0; font: 600 1.1rem system-ui, sans-serif; background: #000; z-index: 3; }
+  .boo-bar { width: min(60vw, 20rem); height: 0.5rem; background: #1d2a18; border-radius: 99px; overflow: hidden; }
+  .boo-bar > i { display: block; height: 100%; background: #8bc34a; transition: width 120ms; }
+  .boo-tools { position: fixed; z-index: 8; top: calc(0.5rem + env(safe-area-inset-top)); right: calc(0.6rem + env(safe-area-inset-right)); display: flex; gap: 0.5rem; }
+  .boo-btn { width: clamp(2.2rem, 7vh, 2.8rem); height: clamp(2.2rem, 7vh, 2.8rem); border-radius: 50%; border: 2px solid rgba(255,255,255,0.6); background: rgba(0,0,0,0.45); color: #fff; font: bold 1rem system-ui, sans-serif; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; touch-action: manipulation; opacity: 0.5; transition: opacity 120ms; }
+  .boo-btn:hover, .boo-btn:focus-visible { opacity: 1; }
+  .boo-note { position: fixed; z-index: 15; left: 50%; bottom: calc(1rem + env(safe-area-inset-bottom)); transform: translateX(-50%); max-width: 90vw; background: #eef3d6; color: #1c2a14; border-radius: 99px; padding: 0.5rem 1.2rem; font: 600 0.95rem system-ui, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
+  .boo-modal { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); padding: 1rem; }
+  .boo-card { max-width: 34rem; max-height: 100%; overflow: auto; background: #eef3d6; color: #1c2a14; border-radius: 0.8rem; padding: 1.2rem 1.5rem; font: 400 1rem/1.5 system-ui, sans-serif; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+  .boo-card h1 { margin: 0 0 0.4rem; font: 800 1.6rem system-ui, sans-serif; color: #3d6b1a; }
+  .boo-card p { margin: 0.5rem 0; }
+  .boo-close { margin-top: 0.6rem; padding: 0.5rem 1.4rem; border: 0; border-radius: 99px; background: #3d6b1a; color: #fff; font: 700 1rem system-ui, sans-serif; cursor: pointer; }
+  .boo-gamepad { position: fixed; z-index: 6; left: 0; right: 0; bottom: calc(0.8rem + env(safe-area-inset-bottom)); display: flex; justify-content: space-between; align-items: flex-end; padding: 0 calc(1rem + env(safe-area-inset-left)); pointer-events: none; }
+  .boo-dpad { display: grid; grid-template-columns: repeat(3, clamp(3rem, 14vh, 4.2rem)); grid-template-rows: repeat(2, clamp(3rem, 14vh, 4.2rem)); gap: 0.4rem; }
+  .boo-dpad .up { grid-column: 2; grid-row: 1; } .boo-dpad .lf { grid-column: 1; grid-row: 2; } .boo-dpad .dn { grid-column: 2; grid-row: 2; } .boo-dpad .rt { grid-column: 3; grid-row: 2; }
+  .boo-actions { display: flex; gap: 0.7rem; align-items: flex-end; }
+  .boo-pad { pointer-events: auto; width: clamp(3.2rem, 15vh, 4.6rem); height: clamp(3.2rem, 15vh, 4.6rem); border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); background: rgba(0,0,0,0.35); color: #fff; font: 700 1.2rem system-ui, sans-serif; touch-action: none; padding: 0; -webkit-tap-highlight-color: transparent; }
+  .boo-pad:active { background: rgba(255,255,255,0.35); }
+  .boo-rotate { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.92); color: #eef3d6; text-align: center; font: 700 1.3rem/1.5 system-ui, sans-serif; }
+  @media (min-aspect-ratio: 16/10) { .boo-tools { flex-direction: column; gap: 0.35rem; right: calc(0.3rem + env(safe-area-inset-right)); top: calc(0.3rem + env(safe-area-inset-top)); } .boo-btn { width: clamp(2rem, 11vh, 2.6rem); height: clamp(2rem, 11vh, 2.6rem); opacity: 0.75; } }
+  @media (max-height: 420px) { .boo-note { bottom: 0.4rem; font-size: 0.8rem; } .boo-card { font-size: 0.85rem; padding: 0.7rem 1rem; } .boo-card h1 { font-size: 1.15rem; } }
+</style>

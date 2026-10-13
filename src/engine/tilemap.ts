@@ -29,7 +29,8 @@ export class TileMap extends Renderable {
         const sx = (idx % ts.cols) * ts.tilew, sy = Math.floor(idx / ts.cols) * ts.tileh;
         // tiles taller than the cell grow upwards from the bottom of their cell
         const dx = ox + cx * tw, dy = oy + (cy + 1) * th - ts.tileh;
-        fb.blit(ts.tex.bitmap(), sx, sy, ts.tilew, ts.tileh, Math.round(dx), Math.round(dy));
+        const bm = ts.tex.bitmap();
+        if (bm) fb.blit(bm, sx, sy, ts.tilew, ts.tileh, Math.round(dx), Math.round(dy));
       }
     }
   }
