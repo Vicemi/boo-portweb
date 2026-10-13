@@ -470,6 +470,7 @@ export function openLibs(L: LuaState, host: Host): void {
   // ================================================================================================================================ package, module, require
   const P = lib('package');
   P.set('path', './?.lua');
+  P.set('config', '/\n;\n?\n!\n-\n');
   P.set('cpath', '');
   P.set('loaded', L.loaded);
   P.set('preload', new LuaTable());

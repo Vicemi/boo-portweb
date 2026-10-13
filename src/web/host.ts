@@ -4,6 +4,7 @@ import { TICK_MS } from '../engine/logic';
 import { WebFiles } from './files';
 import { WebRasterizer } from './rast';
 import { WebAudio } from './webaudio';
+import { savedFromHost, startAutosave } from '../desktop';
 
 export interface BooController {
   state: { progress: number; loaded: boolean; error: string | null; exited: boolean };
@@ -27,6 +28,9 @@ export function startBoo(canvas: HTMLCanvasElement, base: string): BooController
   const state = { progress: 0, loaded: false, error: null as string | null, exited: false };
   const audio = new WebAudio(`${base}/sounds`);
   const mem = new Map<string, string>(Object.entries(userFiles()));   // fallback when the storage is not available
+  const hostSave = savedFromHost();   // desktop version: the save of the installation folder wins
+  if (hostSave) for (const [k, v] of Object.entries(hostSave)) { mem.set(k, v); try { localStorage.setItem(PREFIX + k, v); } catch { /* full */ } }
+  let stopAutosave = (): void => { /* none */ };
   let game: Game | null = null;
   let raf = 0, stopped = false;
   const ctl: BooController = {
@@ -45,7 +49,7 @@ export function startBoo(canvas: HTMLCanvasElement, base: string): BooController
       }
       return n;
     },
-    stop() { stopped = true; cancelAnimationFrame(raf); },
+    stop() { stopped = true; cancelAnimationFrame(raf); stopAutosave(); },
   };
 
   void (async () => {
@@ -64,6 +68,7 @@ export function startBoo(canvas: HTMLCanvasElement, base: string): BooController
       g.onExit = () => { state.exited = true; };
       g.boot();
       game = g;
+      stopAutosave = startAutosave(ctl);
       state.loaded = true;
       if (import.meta.env.DEV) (window as unknown as { __boo: Game }).__boo = g;
       const ctx = canvas.getContext('2d')!;

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { startBoo, type BooController } from '../web/host';
+import { isDesktop } from '../desktop';
+import { installUpdateUi } from '../desktop-update';
 
 /** a round button of the phone gamepad: it keeps a game key down while the finger is on it */
 function Pad({ ctl, code, label, cls }: { ctl: React.RefObject<BooController | null>; code: string; label: string; cls: string }) {
@@ -30,6 +32,7 @@ export default function BooGame() {
   const canFull = typeof document !== 'undefined' && !!document.fullscreenEnabled;
 
   useEffect(() => {
+    if (isDesktop()) installUpdateUi();
     const ctl = startBoo(canvasRef.current!, import.meta.env.BASE_URL.replace(/\/$/, '') + '/game');
     ctlRef.current = ctl;
     if (import.meta.env.DEV) (window as unknown as { __ctl: BooController }).__ctl = ctl;
@@ -96,14 +99,14 @@ export default function BooGame() {
           <div>↻<br />Gira el teléfono para jugar mejor<br /><small>(toca para continuar así)</small></div>
         </div>
       )}
-      <div className="boo-tools">
+      {!isDesktop() && <div className="boo-tools">
         {touch && <button className="boo-btn" aria-label="Menú / Escape" onPointerDown={(e) => { e.preventDefault(); ctlRef.current?.audio.unlock(); ctlRef.current?.key('Escape', true); }} onPointerUp={() => ctlRef.current?.key('Escape', false)}>☰</button>}
         {canFull && <button className="boo-btn" aria-label="Pantalla completa" onClick={toggleFull}>{full ? '✕' : '⛶'}</button>}
         <button className="boo-btn" aria-label={mute ? 'Activar sonido' : 'Silenciar'} onClick={() => { const c = ctlRef.current!; c.audio.setMuted(!c.audio.muted); setMute(c.audio.muted); c.audio.unlock(); }}>{mute ? '🔇' : '🔊'}</button>
         <button className="boo-btn" aria-label="Guardar progreso en un archivo" title="Guardar progreso en un archivo" onClick={saveProgress}>💾</button>
         <button className="boo-btn" aria-label="Cargar progreso desde un archivo" title="Cargar progreso desde un archivo" onClick={() => fileRef.current?.click()}>📂</button>
         <button className="boo-btn" aria-label="Créditos" onClick={() => setInfo(true)}>i</button>
-      </div>
+      </div>}
       <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={(e) => void loadProgress(e.target.files?.[0])} />
       {note && <div className="boo-note" role="status" onClick={() => setNote(null)}>{note}</div>}
       {info && (

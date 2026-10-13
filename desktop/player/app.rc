@@ -1,0 +1,21 @@
+1 ICON "../assets/icon.ico"
+1 VERSIONINFO
+FILEVERSION 1,0,0,0
+PRODUCTVERSION 1,0,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904b0"
+    BEGIN
+      VALUE "CompanyName", "Vicemi Dev (vicemi.dev)"
+      VALUE "FileDescription", "Boo"
+      VALUE "ProductName", "Boo"
+      VALUE "FileVersion", "1.0.0"
+      VALUE "LegalCopyright", "Juego original de Trojan Chicken. Version de escritorio por Vicemi Dev"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x0409, 1200
+  END
+END

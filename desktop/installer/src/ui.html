@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --bg:#14100c; --card:#1f1a13; --gold:#e8b84a; --red:#c4372a; --txt:#f1e6c8; --mut:#a89c82; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--txt); font:15px/1.45 "Segoe UI", system-ui, sans-serif; user-select:none; overflow:hidden; }
+  main { height:100%; display:flex; flex-direction:column; padding:22px 28px 18px; gap:14px;
+    background: radial-gradient(900px 400px at 70% -10%, #3a2a14 0%, transparent 60%), var(--bg); }
+  header { display:flex; align-items:center; gap:14px; }
+  header img { width:62px; height:62px; border-radius:14px; box-shadow:0 4px 16px #0008; }
+  h1 { margin:0; font-size:21px; color:var(--gold); letter-spacing:.2px; }
+  h1 small { display:block; font-size:12.5px; font-weight:400; color:var(--mut); margin-top:2px; }
+  .card { background:var(--card); border:1px solid #3a2f20; border-radius:12px; padding:14px 16px; }
+  label.t { display:block; font-size:12.5px; color:var(--mut); margin-bottom:6px; }
+  .row { display:flex; gap:8px; }
+  input[type=text] { flex:1; background:#0f0c08; color:var(--txt); border:1px solid #4a3c28; border-radius:8px; padding:8px 10px; font:14px "Segoe UI"; outline:none; }
+  input[type=text]:focus { border-color:var(--gold); }
+  button { background:#2c2418; color:var(--txt); border:1px solid #4a3c28; border-radius:8px; padding:8px 16px; font:600 14px "Segoe UI"; cursor:pointer; }
+  button:hover { border-color:var(--gold); }
+  button.main { background:var(--red); border-color:#e5584a; color:#fff; padding:10px 26px; font-size:15px; }
+  button.main:hover { background:#d9473a; }
+  button:disabled { opacity:.5; cursor:default; }
+  .opts { display:flex; flex-direction:column; gap:7px; margin-top:12px; }
+  .opts label { display:flex; align-items:center; gap:9px; cursor:pointer; }
+  input[type=checkbox] { width:16px; height:16px; accent-color:var(--gold); }
+  .grow { flex:1; }
+  .bar { height:10px; background:#0f0c08; border-radius:99px; overflow:hidden; border:1px solid #3a2f20; }
+  .bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,#c8a24a,#f0d27a); transition:width .15s; }
+  .center { text-align:center; }
+  .foot { display:flex; justify-content:space-between; align-items:center; color:var(--mut); font-size:12.5px; }
+  .foot b { color:var(--gold); font-weight:600; }
+  a { color:var(--gold); text-decoration:none; cursor:pointer; }
+  .err { color:#ff9b8f; }
+  .note { color:var(--mut); font-size:13.5px; }
+  .actions { display:flex; justify-content:flex-end; gap:10px; }
+  .hide { display:none !important; }
+  ul { margin:6px 0 0; padding-left:18px; color:var(--mut); font-size:13.5px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="data:image/png;base64,__ICON__" alt="">
+    <h1>Boo<small id="sub">Instalador de la versión de escritorio</small></h1>
+  </header>
+
+  <!-- instalar -->
+  <section id="s-install" class="grow" style="display:flex;flex-direction:column;gap:12px">
+    <div class="card">
+      <p style="margin:0 0 8px">El juego de fantasmas de Trojan Chicken para el Plan Ceibal (OLPC), recreado por Vicemi Dev con todos sus recursos originales. Funciona <b>sin internet</b>.</p>
+      <label class="t" for="path">Carpeta de instalación</label>
+      <div class="row"><input id="path" type="text" spellcheck="false"><button id="browse">Examinar…</button></div>
+      <div class="opts">
+        <label><input id="o-desk" type="checkbox" checked> Crear un acceso directo en el escritorio</label>
+        <label><input id="o-start" type="checkbox" checked> Crear un acceso directo en el menú Inicio</label>
+      </div>
+    </div>
+    <div id="msg" class="note"></div>
+    <div class="grow"></div>
+    <div class="actions"><button id="cancel">Cancelar</button><button id="go" class="main">Instalar</button></div>
+  </section>
+
+  <!-- progreso -->
+  <section id="s-progress" class="grow hide" style="flex-direction:column;gap:12px;justify-content:center">
+    <div class="card center">
+      <p id="step" style="margin:0 0 12px">Instalando…</p>
+      <div class="bar"><i id="fill"></i></div>
+    </div>
+  </section>
+
+  <!-- listo -->
+  <section id="s-done" class="grow hide" style="flex-direction:column;gap:12px">
+    <div class="card">
+      <h2 id="done-title" style="margin:0 0 6px;color:var(--gold);font-size:18px">¡Listo!</h2>
+      <div id="done-text"></div>
+      <ul id="done-list"></ul>
+    </div>
+    <div class="grow"></div>
+    <div class="actions"><button id="close">Cerrar</button><button id="play" class="main">Jugar ahora</button></div>
+  </section>
+
+  <!-- desinstalar -->
+  <section id="s-uninstall" class="grow hide" style="flex-direction:column;gap:12px">
+    <div class="card">
+      <p style="margin:0 0 10px">Se va a quitar <b>Boo</b> de esta computadora:</p>
+      <div id="u-path" style="color:var(--mut);margin-bottom:12px;word-break:break-all"></div>
+      <div class="opts"><label><input id="o-keep" type="checkbox" checked> Conservar mis partidas guardadas (carpeta saves)</label></div>
+    </div>
+    <div class="grow"></div>
+    <div class="actions"><button id="u-cancel">Cancelar</button><button id="u-go" class="main">Desinstalar</button></div>
+  </section>
+
+  <div class="foot"><span>Recreado por <b>Vicemi Dev</b> · <a id="site">vicemi.dev</a></span><span>Juego original © Trojan Chicken</span></div>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const send = (t, data) => window.ipc.postMessage(JSON.stringify({ t, data }));
+  const show = (id) => { for (const s of ['s-install', 's-progress', 's-done', 's-uninstall']) $(s).classList.toggle('hide', s !== id); };
+  window.onHost = (m) => {
+    if (m.type === 'init') {
+      $('path').value = m.path || '';
+      if (m.mode === 'uninstall') { $('sub').textContent = 'Desinstalador'; $('u-path').textContent = m.path; show('s-uninstall'); }
+      else show('s-install');
+      if (m.existing) $('msg').className = 'note', $('msg').textContent = 'Ya hay una instalación en esa carpeta: se actualizará sin borrar tus partidas.';
+    } else if (m.type === 'path') { $('path').value = m.path; $('msg').textContent = ''; }
+    else if (m.type === 'progress') { show('s-progress'); $('step').textContent = m.text; $('fill').style.width = Math.round(m.value * 100) + '%'; }
+    else if (m.type === 'done') {
+      show('s-done');
+      $('done-title').textContent = m.uninstall ? 'Desinstalado' : '¡Instalación completa!';
+      $('done-text').textContent = m.text;
+      $('done-list').innerHTML = (m.items || []).map((i) => '<li>' + i + '</li>').join('');
+      $('play').classList.toggle('hide', !!m.uninstall);
+    } else if (m.type === 'error') { show(m.uninstall ? 's-uninstall' : 's-install'); $('msg').textContent = m.text; $('msg').className = 'err'; }
+  };
+  $('browse').onclick = () => send('browse', $('path').value);
+  $('go').onclick = () => { $('msg').textContent = ''; send('install', { path: $('path').value, desktop: $('o-desk').checked, start: $('o-start').checked }); };
+  $('cancel').onclick = $('close').onclick = $('u-cancel').onclick = () => send('close');
+  $('play').onclick = () => send('play');
+  $('u-go').onclick = () => send('uninstall', { keepSaves: $('o-keep').checked });
+  $('site').onclick = () => send('site');
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  send('ready');
+</script>
+</body>
+</html>

@@ -15,6 +15,7 @@ import { Mixer, Playable, NullAudio, type AudioBackend, SoundObj } from './audio
 import { TextFactory, Font, type GlyphRasterizer } from './text';
 import { AssetStorage, type FileSource, type Services } from './assets';
 import { DialogManager } from './dialog';
+import { ghostInit, ghostMethods, NATIVE_SIDE } from './ghost';
 
 export interface GameOptions {
   files: FileSource;
@@ -109,12 +110,13 @@ export class Game extends LObj {
 
     // base classes of the components written in Lua
     const nop = (): void => { /* default implementation */ };
-    for (const name of ['Component', 'GhostComponentBase']) {
-      lb.nativeBase(name, (self: LuaTable) => { (self as any)[NATIVE] = new LuaComponent(self); }, {
-        add_to_game: nop, remove_from_game: nop, start: nop, update: nop, clone: (s: LuaTable) => s,
-        object_id: (s: LuaTable) => (s as any).oid ?? ((s as any).oid = ++Game.oids),
-      });
-    }
+    const common = {
+      add_to_game: nop, remove_from_game: nop, start: nop, update: nop, clone: (s: LuaTable) => s,
+      object_id: (s: LuaTable) => (s as any).oid ?? ((s as any).oid = ++Game.oids),
+    };
+    lb.nativeBase('Component', (self: LuaTable) => { (self as any)[NATIVE] = new LuaComponent(self); }, common);
+    lb.nativeBase('GhostComponentBase', (self: LuaTable) => { (self as any)[NATIVE] = new LuaComponent(self); ghostInit(self); }, { ...common, ...ghostMethods });
+    G.set('native_side', NATIVE_SIDE);
 
     G.set('game', this);
     f('LogicNode', () => new LogicNode());
@@ -136,6 +138,7 @@ export class Game extends LObj {
     G.set('save_dir', 'saves');
     f('encrypt_file', (name, data) => { o.userWrite?.(String(name), String(data ?? '')); });
     f('decrypt_file', (name) => o.userRead?.(String(name)));
+    f('yea_doit', () => ''); f('yea_doit2', () => '');   // (signatures for the online scores of the original)
     f('score_client_post', () => { /* the online scores of the original are gone */ });
     f('score_client_get', () => { /* idem */ });
     f('class_info', () => undefined);
