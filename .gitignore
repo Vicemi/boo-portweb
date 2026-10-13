@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.astro/
+research/*
+!research/tools/
+research/tools/unluac.jar
+*.log
+__pycache__/
+desktop/target/
+desktop/target-stub/
+desktop/payload/
+desktop/release/
