@@ -132,7 +132,7 @@ export class Game extends LObj {
     f('DialogManager', (stage, font, render, logic) => new DialogManager(this, stage as Stage, font as Font, render as RenderNode, logic as LogicNode));
     for (const [k, fn] of Object.entries(collisionGlobals)) f(k, fn as NativeFunction);
 
-    f('save_dir', () => 'saves');
+    G.set('save_dir', 'saves');
     f('encrypt_file', (name, data) => { o.userWrite?.(String(name), String(data ?? '')); });
     f('decrypt_file', (name) => o.userRead?.(String(name)));
     f('score_client_post', () => { /* the online scores of the original are gone */ });

@@ -63,7 +63,7 @@ export function buildMap(tmx: Tmx, tex: (source: string, trans: string | null, w
       data.collision = collision;
       continue;
     }
-    const key = l.props.layer !== undefined ? Number(l.props.layer) : NaN;
+    const key = Number(l.props.layer !== undefined ? l.props.layer : l.name);
     if (isNaN(key)) continue;
     data.renderables.set(key, new TileMap(l, tilesets, wpx, hpx, tmx.tilew, tmx.tileh));
   }

@@ -1,0 +1,16 @@
+import { Game } from '../src/engine/game';
+import { folderFiles, CanvasRasterizer } from '../tools/node_host';
+const st = new Map<string, string>();
+const g = new Game({ files: folderFiles('F:/Games/Boo-PortWeb/boo-portweb/research/deb/usr/share/boo-trojanchicken'), rast: new CanvasRasterizer(), print: () => {}, userRead: (p) => st.get(p), userWrite: (p, d) => { st.set(p, d); } });
+g.boot();
+for (let i = 0; i < 520; i++) g.tick();
+const a = g.input.inputs.get('action_1')!;
+g.input.keyDown('Space'); g.tick(); console.log('after down', a.down, a.pressed, a.up);
+g.tick(); g.input.keyUp('Space'); g.tick(); console.log('after up', a.down, a.pressed, a.up, g.errors.length);
+for (let i = 0; i < 100; i++) g.tick();
+console.log(g.errors.slice(0, 3));
+import { compileChunk } from '../src/lua/compile';
+const fn = compileChunk(g.L, 'error(tostring(g_ScreenM:get_current_page()))', '=t');
+console.log(g.L.pcall(fn, []).err);
+import { savePng } from '../tools/node_host';
+savePng(g.render(), 'research/boot/k.png');
