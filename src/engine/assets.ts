@@ -42,7 +42,13 @@ export class AssetStorage extends LObj {
     if (!t) {
       const bytes = this.svc.files.read(p);
       const size = bytes ? pngSize(bytes) : this.svc.files.imageSize?.(p) ?? null;
-      if (!size) throw new Error('texture not found: ' + p);
+      if (!size) {
+        // a missing image must not stop the game (the original has dialogs for characters whose picture is not in the files): it draws nothing
+        console.warn('texture not found: ' + p);
+        t = new Texture(p, 1, 1, () => ({ w: 1, h: 1, data: new Uint8ClampedArray(4) }), null);
+        this.svc.textures.set(key, t);
+        return t;
+      }
       const [w, h] = size;
       const ck = trans ? parseInt(trans, 16) : null;
       t = new Texture(p, w, h, () => { const b = this.svc.files.read(p); return b ? decodePng(b) : null; }, ck);

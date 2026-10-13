@@ -25,6 +25,7 @@ export class DialogManager extends LObj {
   textW = 400; textH = 100;
   color = 0xffffffff; colorSelected = 0xffffffff;
   full = '';
+  waiting = false;                 // a line is on screen (even an empty one) and its callback has not been called
   shown = 0;
   wait = 0;
   fast = false;
@@ -47,12 +48,12 @@ export class DialogManager extends LObj {
   setPos(x: number, y: number): void { this.text.p.x = x; this.text.p.y = y; }
   start(): void { this.active = true; this.node.enabled = true; }
   finish(): void {
-    this.active = false; this.full = ''; this.shown = 0; this.text.setText(''); this.cb = undefined; this.optCb = undefined; this.options = [];
+    this.active = false; this.waiting = false; this.full = ''; this.shown = 0; this.text.setText(''); this.cb = undefined; this.optCb = undefined; this.options = [];
     for (const o of this.optionTexts) this.node.children.removeChild(o);
     this.optionTexts = []; this.arrow.enabled = false;
   }
   private begin(t: string): void {
-    this.full = t; this.shown = 0; this.wait = 0; this.fast = false;
+    this.full = t; this.waiting = true; this.shown = 0; this.wait = 0; this.fast = false;
     this.text.width = this.textW; this.text.height = this.textH; this.text.color = this.color;
     this.text.setText('');
     for (const o of this.optionTexts) this.node.children.removeChild(o);
@@ -81,7 +82,7 @@ export class DialogManager extends LObj {
     this.arrow.p.x = this.text.p.x; this.arrow.p.y = base + this.selected * 22;
   }
   update(): void {
-    if (!this.active || this.full === '') return;
+    if (!this.active || !this.waiting) return;
     const inp = this.game.input.inputs;
     const act = inp.get('action_2')!.down;
     if (this.shown < this.full.length) {
@@ -98,7 +99,7 @@ export class DialogManager extends LObj {
       if (act) { const cb = this.optCb; this.optCb = undefined; lua().callArr(cb, [this.selected]); }
       return;
     }
-    if (act) { const cb = this.cb; this.cb = undefined; if (cb !== undefined) lua().callArr(cb, []); }
+    if (act) { const cb = this.cb; this.cb = undefined; this.waiting = false; if (cb !== undefined) lua().callArr(cb, []); }
   }
 }
 LObj.bind(DialogManager, {
