@@ -1,7 +1,7 @@
 {
   "name": "boo-web",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Boo (Trojan Chicken, OLPC / Plan Ceibal) portado a la web: Astro + React + Canvas; el juego original (Lua 5.1) corre en una VM propia",
   "engines": {
     "node": ">=22.12.0"
@@ -12,6 +12,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "assets": "node tools/build_assets.mjs",
+    "test": "tsc --noEmit && npx tsx tests/edge_test.ts && npx tsx tests/xml_test.ts && npx tsx tests/collide_test.ts && npx tsx tools/t_fuzz.ts 4 15",
     "desktop": "python tools/build_desktop.py"
   },
   "dependencies": {

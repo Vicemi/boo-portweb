@@ -6,6 +6,7 @@ export const SCREEN_W = 600, SCREEN_H = 450;
 export class Framebuffer {
   w = SCREEN_W; h = SCREEN_H;
   data = new Uint8ClampedArray(SCREEN_W * SCREEN_H * 4);
+  private u32 = new Uint32Array(this.data.buffer);
   /** the clip rectangle: nothing outside is drawn */
   cx0 = 0; cy0 = 0; cx1 = SCREEN_W; cy1 = SCREEN_H;
 

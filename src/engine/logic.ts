@@ -18,6 +18,9 @@ export interface ComponentRef {
   update(): void;
 }
 
+/** where the errors of a component are reported: one failing component must not stop the rest of the step (a Lua error in an update would otherwise freeze the whole game every step) */
+export const LOGIC_ERRORS: { report: (e: unknown) => void } = { report: (e) => console.error(e) };
+
 let LUA: LuaState;
 export function setLua(L: LuaState): void { LUA = L; }
 export function lua(): LuaState { return LUA; }
@@ -120,10 +123,10 @@ export class LogicNode extends LObj {
       for (let i = 0; i < snapshot.length; i++) {
         const it = snapshot[i];
         if (this.removed.has(it)) continue;
-        if (it instanceof LogicNode) it.update(); else it.update();
+        try { it.update(); } catch (e) { LOGIC_ERRORS.report(e); }
       }
     } finally { this.removed = null; }
-    for (const t of this.posts.slice()) t.detect();
+    for (const t of this.posts.slice()) { try { t.detect(); } catch (e) { LOGIC_ERRORS.report(e); } }
     // the waits: they go after the components; the ones created by a callback are processed in the same pass
     for (let i = 0; i < this.waits.length; i++) {
       const w = this.waits[i];
@@ -131,7 +134,7 @@ export class LogicNode extends LObj {
       w.elapsed += TICK_MS;
       if (w.elapsed >= w.ms) {
         this.waits.splice(i--, 1);
-        LUA.callArr(w.cb, []);
+        try { LUA.callArr(w.cb, []); } catch (e) { LOGIC_ERRORS.report(e); }
       }
     }
   }

@@ -73,10 +73,11 @@ export class CollisionMap extends Shape {
   aabb(): Rect { return { x0: 0, y0: 0, x1: this.cols * TILE, y1: this.rows * TILE }; }
   /** the solids of the cells that touch `r` (a world rect), for a map placed at (ox, oy) */
   solids(r: Rect, ox: number, oy: number, out: Solid[]): void {
-    const c0 = Math.max(0, Math.floor((r.x0 - ox) / TILE)), c1 = Math.min(this.cols - 1, Math.floor((r.x1 - ox) / TILE));
-    const r0 = Math.max(0, Math.floor((r.y0 - oy) / TILE)), r1 = Math.min(this.rows - 1, Math.floor((r.y1 - oy) / TILE));
+    // measured in the original: the map is framed by one ring of solid cells (so the door cells on the last row of a map do not lead outside)
+    const c0 = Math.max(-1, Math.floor((r.x0 - ox) / TILE)), c1 = Math.min(this.cols, Math.floor((r.x1 - ox) / TILE));
+    const r0 = Math.max(-1, Math.floor((r.y0 - oy) / TILE)), r1 = Math.min(this.rows, Math.floor((r.y1 - oy) / TILE));
     for (let cy = r0; cy <= r1; cy++) for (let cx = c0; cx <= c1; cx++) {
-      const t = this.tiles[cy * this.cols + cx];
+      const t = cx < 0 || cy < 0 || cx >= this.cols || cy >= this.rows ? 1 : this.tiles[cy * this.cols + cx];
       if (t === 0) continue;
       const poly = TILE_POLYS[t];
       if (!poly) continue;

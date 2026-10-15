@@ -7,7 +7,7 @@ import { undump, isBytecode } from '../lua/undump';
 import { Luabind, LObj, NATIVE } from './luabind';
 import { Framebuffer, Texture } from './gfx';
 import { Vec2, RenderNode, Fill, Line, Sprite, LayeredRenderable, TextureObj, num } from './scene';
-import { LogicNode, LuaComponent, Stage, Entity, GAME_REF, setLua } from './logic';
+import { LogicNode, LuaComponent, Stage, Entity, GAME_REF, LOGIC_ERRORS, setLua } from './logic';
 import { Frame, Animation, AnimationManager, RenderComponent, LayeredRenderComponent } from './anim';
 import { collisionGlobals, COLLISION, CollisionSystem } from './collision';
 import { InputSystem } from './input';
@@ -16,6 +16,9 @@ import { TextFactory, Font, type GlyphRasterizer } from './text';
 import { AssetStorage, type FileSource, type Services } from './assets';
 import { DialogManager } from './dialog';
 import { ghostInit, ghostMethods, NATIVE_SIDE } from './ghost';
+import { xmlFromString } from './xml';
+
+const NLC = String.fromCharCode(10);
 
 export interface GameOptions {
   files: FileSource;
@@ -72,6 +75,7 @@ export class Game extends LObj {
   constructor(public opts: GameOptions) {
     super();
     GAME_REF.game = this;
+    LOGIC_ERRORS.report = (e) => this.report(e);
     COLLISION.sys = this.collision;
     setLua(this.L);
     this.mixer = new Mixer(opts.audio ?? new NullAudio());
@@ -89,12 +93,19 @@ export class Game extends LObj {
     const L = this.L;
     const o = this.opts;
     const dec = (b: Uint8Array): string => { let s = ''; for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode(...b.subarray(i, i + 8192)); return s; };
+    const textCache = new Map<string, string>();
     const host: Host = {
       readFile: (p) => {
         const u = o.userRead?.(p);
         if (u !== undefined) return u;
-        const b = o.files.read(p.replace(/^\.\//, ''));
-        return b ? dec(b) : undefined;
+        const k = p.replace(/^\.\//, '');
+        const hit = textCache.get(k);
+        if (hit !== undefined) return hit;
+        const b = o.files.read(k);
+        if (!b) return undefined;
+        const t = dec(b);
+        if (/\.(tmx|csv)$/.test(k)) textCache.set(k, t);   // the game reads the same map / table files again and again
+        return t;
       },
       writeFile: (p, d) => { o.userWrite?.(p, d); return true; },
       removeFile: () => false,
@@ -141,6 +152,7 @@ export class Game extends LObj {
     f('yea_doit', () => ''); f('yea_doit2', () => '');   // (signatures for the online scores of the original)
     f('score_client_post', () => { /* the online scores of the original are gone */ });
     f('score_client_get', () => { /* idem */ });
+    f('__xml_parse', (self, text) => { xmlFromString(self, String(text)); });
     f('class_info', () => undefined);
     f('class_names', () => new LuaTable());
   }
@@ -148,6 +160,25 @@ export class Game extends LObj {
 
   /** fixes of the original game, applied (once) when the module that has the code is loaded */
   private patches: Record<string, string> = {
+    // the xml parser is native (src/engine/xml.ts): the game parses the same tmx file about 30 times per map change
+    // an npc / trigger whose quest row is empty (no row of the table matches the quest state) made NPCComponent fail while the map loaded: it is just not created
+    'stage_manager.npc_manager': [
+      'local orig = npc_manager.addEntity',
+      'npc_manager.addEntity = function(self, name, row, trigger)',
+      '  if row == nil or (not row.hasOptions and row.event == nil) then return end',
+      '  return orig(self, name, row, trigger)',
+      'end',
+    ].join(String.fromCharCode(10)),
+    // a ghost that hits the player before the player component joined the game (right after a map change) failed on the missing animation
+    'components.player': [
+      'local orig = PlayerComponent.get_damage',
+      'function PlayerComponent:get_damage(d, by)',
+      '  if not self.animation and self.parent then self.animation = self.parent:get_component("player_animation") end',
+      '  if not self.animation then return end',
+      '  return orig(self, d, by)',
+      'end',
+    ].join(String.fromCharCode(10)),
+    'xml_parser.xml_parser': 'XL.from_string = function(self, s) __xml_parse(self, s) end',
     // basement_3 leads to "boss:a" but the boss room has no doors: the original fails to load it. It uses the start point of the room instead
     'stage_manager.stage_manager': [
       'local sm = stage_manager',
@@ -203,8 +234,14 @@ export class Game extends LObj {
     this.mixer.backend.tick?.(33);
   }
 
+  private seenErrors = new Map<string, number>();
   private report(e: unknown): void {
-    const msg = e instanceof Error ? (e as any).value !== undefined ? String((e as any).value) + '\n' + ((e as any).traceback ?? '') : e.stack ?? e.message : String(e);
+    const msg = e instanceof Error ? (e as any).value !== undefined ? String((e as any).value) + NLC + ((e as any).traceback ?? '') : e.stack ?? e.message : String(e);
+    // a component that fails every step reports once, not 30 times a second
+    const key = msg.split(NLC)[0];
+    const n = (this.seenErrors.get(key) ?? 0) + 1;
+    this.seenErrors.set(key, n);
+    if (n > 1) return;
     this.errors.push(msg);
     (this.opts.print ?? console.error)('[lua error] ' + msg);
   }

@@ -149,7 +149,7 @@ export class LayeredRenderable extends Renderable {
   w = 0; h = 0;
   addRenderable(layer: number, n: RenderNode): void {
     let l = this.layers.get(layer);
-    if (!l) { l = []; this.layers.set(layer, l); }
+    if (!l) { l = []; this.layers.set(layer, l); this.ids = null; }
     if (!l.includes(n)) l.push(n);
   }
   removeRenderable(layer: number, n: RenderNode): void {
@@ -157,6 +157,13 @@ export class LayeredRenderable extends Renderable {
     if (!l) return;
     const i = l.indexOf(n);
     if (i >= 0) l.splice(i, 1);
+  }
+  /** the layer ids in drawing order; rebuilt only when a layer appears or a base changes */
+  private ids: number[] | null = null;
+  invalidate(): void { this.ids = null; }
+  private order(): number[] {
+    if (this.ids === null) this.ids = [...new Set([...this.base.keys(), ...this.layers.keys()])].sort((x, y) => x - y);
+    return this.ids;
   }
   resort(): void {
     for (const l of this.layers.values()) {
@@ -170,9 +177,9 @@ export class LayeredRenderable extends Renderable {
     }
   }
   draw(ctx: DrawCtx, ox: number, oy: number): void {
-    const ids = new Set<number>([...this.base.keys(), ...this.layers.keys()]);
-    const sorted = [...ids].sort((a, b) => a - b);
-    for (const id of sorted) {
+    const sorted = this.order();
+    for (let k = 0; k < sorted.length; k++) {
+      const id = sorted[k];
       const b = this.base.get(id);
       if (b) b.draw(ctx, ox, oy);
       const l = this.layers.get(id);
@@ -185,7 +192,7 @@ LObj.bind(LayeredRenderable, {
   methods: {
     add_renderable: (s: LayeredRenderable, layer, n: RenderNode) => { s.addRenderable(num(layer), n); },
     remove_renderable: (s: LayeredRenderable, layer, n: RenderNode) => { s.removeRenderable(num(layer), n); },
-    set_base: (s: LayeredRenderable, layer, r) => { if (r instanceof Renderable) s.base.set(num(layer), r); else s.base.delete(num(layer)); },
+    set_base: (s: LayeredRenderable, layer, r) => { if (r instanceof Renderable) s.base.set(num(layer), r); else s.base.delete(num(layer)); s.invalidate(); },
     resort: (s: LayeredRenderable) => { s.resort(); },
   },
 });

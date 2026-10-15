@@ -18,9 +18,25 @@ export interface BooController {
 const PREFIX = 'boo:save:';
 const FONTS = ['assets/hud/zombieguts.ttf', 'assets/menus/registry_font.ttf', 'assets/dialogs/font.ttf', 'assets/font/font.ttf'];
 
+const BACKUP = 'boo:bak:';   // the previous version of every save file (a second copy that is never read as a save)
+/** a save written by the game is a Lua table: anything else (empty, cut, wrong file) must never replace a good save */
+const looksSaved = (k: string, v: unknown): v is string => typeof v === 'string' && (!k.endsWith('.lua') || (v.length > 20 && v.trimStart().startsWith('return')));
+
+function store(k: string, v: string): void {
+  try {
+    const old = localStorage.getItem(PREFIX + k);
+    if (old !== null && old !== v && looksSaved(k, old)) { try { localStorage.setItem(BACKUP + k, old); } catch { /* full: the backup is optional */ } }
+    localStorage.setItem(PREFIX + k, v);
+  } catch { /* storage full or blocked: the copy in memory is still used */ }
+}
+
 function userFiles(): Record<string, string> {
   const out: Record<string, string> = {};
-  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i)!; if (k.startsWith(PREFIX)) out[k.slice(PREFIX.length)] = localStorage.getItem(k)!; } } catch { /* no storage */ }
+  try {
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i)!; if (k.startsWith(PREFIX)) out[k.slice(PREFIX.length)] = localStorage.getItem(k)!; }
+    // a save that is damaged is replaced by its backup, when that one is good
+    for (const k of Object.keys(out)) if (!looksSaved(k, out[k])) { const b = localStorage.getItem(BACKUP + k); if (b !== null && looksSaved(k, b)) out[k] = b; }
+  } catch { /* no storage */ }
   return out;
 }
 
@@ -29,7 +45,7 @@ export function startBoo(canvas: HTMLCanvasElement, base: string): BooController
   const audio = new WebAudio(`${base}/sounds`);
   const mem = new Map<string, string>(Object.entries(userFiles()));   // fallback when the storage is not available
   const hostSave = savedFromHost();   // desktop version: the save of the installation folder wins
-  if (hostSave) for (const [k, v] of Object.entries(hostSave)) { mem.set(k, v); try { localStorage.setItem(PREFIX + k, v); } catch { /* full */ } }
+  if (hostSave) for (const [k, v] of Object.entries(hostSave)) if (looksSaved(k, v)) { mem.set(k, v); store(k, v); }
   let stopAutosave = (): void => { /* none */ };
   let game: Game | null = null;
   let raf = 0, stopped = false;
@@ -62,16 +78,21 @@ export function startBoo(canvas: HTMLCanvasElement, base: string): BooController
       const g = new Game({
         files, rast: rastP, audio,
         userRead: (p) => mem.get(p),
-        userWrite: (p, d) => { mem.set(p, d); try { localStorage.setItem(PREFIX + p, d); } catch { /* full */ } },
+        userWrite: (p, d) => { if (!looksSaved(p, d)) return; mem.set(p, d); store(p, d); },
         print: (s) => { if (import.meta.env.DEV) console.log(s); },
       });
       g.onExit = () => { state.exited = true; };
       g.boot();
       game = g;
       stopAutosave = startAutosave(ctl);
+      // write everything again when the page hides or closes (a write that failed earlier gets another chance)
+      const flush = (): void => { for (const [k, v] of mem) store(k, v); };
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+      window.addEventListener('pagehide', flush);
       state.loaded = true;
       if (import.meta.env.DEV) (window as unknown as { __boo: Game }).__boo = g;
       const ctx = canvas.getContext('2d')!;
+      let image: ImageData | null = null;   // one ImageData over the frame buffer, reused every frame
       let last = performance.now(), acc = 0;
       const frame = (now: number): void => {
         if (stopped) return;
@@ -81,7 +102,8 @@ export function startBoo(canvas: HTMLCanvasElement, base: string): BooController
         while (acc >= TICK_MS && ticks < 6) { g.tick(); acc -= TICK_MS; ticks++; }
         if (ticks === 0) return;
         const fb = g.render();
-        ctx.putImageData(new ImageData(fb.data, fb.w, fb.h), 0, 0);
+        image ??= new ImageData(fb.data, fb.w, fb.h);
+        ctx.putImageData(image, 0, 0);
       };
       raf = requestAnimationFrame(frame);
     } catch (e) {

@@ -2,6 +2,20 @@
 
 La descripción de cada release de GitHub es la sección de su versión; la versión de escritorio la muestra al jugador cuando hay una actualización.
 
+## 1.0.2
+
+### Correcciones
+- Las puertas ya no se pueden atravesar por abajo o por los bordes del mapa: el original rodea cada mapa con un anillo de celdas sólidas (medido en el juego real) y no estaba reproducido, así que por ejemplo la puerta de la casa (última fila del mapa) dejaba salir del mapa caminando.
+- Un error en un componente del juego (por ejemplo un NPC sin diálogo para el estado de la misión) ya no congela todo el juego: el paso sigue y el error se anota una sola vez. Dos errores de ese tipo detectados jugando con estados de misión raros (NPC sin fila en las tablas de misiones, fantasma que golpea al jugador justo al cambiar de mapa) quedan corregidos.
+- Guardado más seguro: no se sobrescribe una partida con datos vacíos o dañados, se conserva una copia de la versión anterior (si la partida está dañada se recupera la copia), y el progreso se vuelve a escribir al ocultar o cerrar la página. El formato de las claves (`boo:save:`) y de los archivos no cambia.
+
+### Rendimiento
+- Cambiar de mapa es mucho más rápido: las imágenes se decodifican unas 40 veces más rápido (antes la primera imagen de un nivel podía tardar varios segundos en equipos lentos, lo que parecía un cuelgue) y el juego ya no vuelve a leer y analizar unas 30 veces el mismo archivo de mapa (la carga de Lua baja de 150-500 ms a 30-60 ms).
+- Menos trabajo por cuadro: limpieza y reducción de color de la pantalla en bloque y sin crear objetos nuevos en cada cuadro.
+
+### Comprobado
+- 188 diálogos, todas las puertas (también con todas las misiones cumplidas), partidas aleatorias de varios estados de misión caminando con teclas reales, y 24 mapas sin errores de Lua.
+
 ## 1.0.1
 
 ### Correcciones

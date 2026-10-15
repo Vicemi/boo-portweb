@@ -11,6 +11,49 @@ function paeth(a: number, b: number, c: number): number {
   return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
 }
 
+/** 8 bit samples (all the images of the game): the scanlines are unfiltered in place and converted without per-pixel closures. Returns the new read position */
+function decode8(raw: Uint8Array, rp: number, out: Uint8ClampedArray, w: number, x0: number, y0: number, dx: number, dy: number, pw: number, ph: number,
+  stride: number, channels: number, bpp: number, ctype: number, palette: Uint8Array | null, trns: Uint8Array | null): number {
+  const tr = trns && trns.length >= 6 && ctype === 2 ? [(trns[0] << 8) | trns[1], (trns[2] << 8) | trns[3], (trns[4] << 8) | trns[5]] : null;
+  const tg = trns && trns.length >= 2 && ctype === 0 ? (trns[0] << 8) | trns[1] : -1;
+  for (let y = 0; y < ph; y++) {
+    const ft = raw[rp++];
+    const s = rp, pv = y > 0 ? s - stride - 1 : -1;      // start of this scanline and of the previous (already unfiltered) one
+    rp += stride;
+    switch (ft) {
+      case 1: for (let i = bpp; i < stride; i++) raw[s + i] = (raw[s + i] + raw[s + i - bpp]) & 255; break;
+      case 2: if (pv >= 0) for (let i = 0; i < stride; i++) raw[s + i] = (raw[s + i] + raw[pv + i]) & 255; break;
+      case 3: for (let i = 0; i < stride; i++) raw[s + i] = (raw[s + i] + (((i >= bpp ? raw[s + i - bpp] : 0) + (pv >= 0 ? raw[pv + i] : 0)) >> 1)) & 255; break;
+      case 4: for (let i = 0; i < stride; i++) raw[s + i] = (raw[s + i] + paeth(i >= bpp ? raw[s + i - bpp] : 0, pv >= 0 ? raw[pv + i] : 0, i >= bpp && pv >= 0 ? raw[pv + i - bpp] : 0)) & 255; break;
+    }
+    const py = y0 + y * dy;
+    let d = (py * w + x0) * 4;
+    const step = dx * 4;
+    if (ctype === 6) {
+      if (dx === 1) out.set(raw.subarray(s, s + stride), d);
+      else for (let x = 0, k = s; x < pw; x++, k += 4, d += step) { out[d] = raw[k]; out[d + 1] = raw[k + 1]; out[d + 2] = raw[k + 2]; out[d + 3] = raw[k + 3]; }
+    } else if (ctype === 2) {
+      for (let x = 0, k = s; x < pw; x++, k += 3, d += step) {
+        const r = raw[k], g = raw[k + 1], b = raw[k + 2];
+        out[d] = r; out[d + 1] = g; out[d + 2] = b;
+        out[d + 3] = tr && r === tr[0] && g === tr[1] && b === tr[2] ? 0 : 255;
+      }
+    } else if (ctype === 3) {
+      for (let x = 0, k = s; x < pw; x++, k++, d += step) {
+        const i = raw[k];
+        out[d] = palette![i * 3]; out[d + 1] = palette![i * 3 + 1]; out[d + 2] = palette![i * 3 + 2];
+        out[d + 3] = trns && i < trns.length ? trns[i] : 255;
+      }
+    } else if (ctype === 4) {
+      for (let x = 0, k = s; x < pw; x++, k += 2, d += step) { const v = raw[k]; out[d] = v; out[d + 1] = v; out[d + 2] = v; out[d + 3] = raw[k + 1]; }
+    } else {
+      for (let x = 0, k = s; x < pw; x++, k++, d += step) { const v = raw[k]; out[d] = v; out[d + 1] = v; out[d + 2] = v; out[d + 3] = v === tg ? 0 : 255; }
+    }
+  }
+  void channels;
+  return rp;
+}
+
 export function decodePng(buf: Uint8Array): Bitmap {
   if (buf[0] !== 0x89 || buf[1] !== 0x50) throw new Error('not a PNG');
   const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
@@ -48,6 +91,7 @@ export function decodePng(buf: Uint8Array): Bitmap {
     const pw = Math.ceil((w - x0) / dx), ph = Math.ceil((h - y0) / dy);
     if (pw <= 0 || ph <= 0) continue;
     const stride = (pw * channels * depth + 7) >> 3;
+    if (depth === 8) { rp = decode8(raw, rp, out, w, x0, y0, dx, dy, pw, ph, stride, channels, bpp, ctype, palette, trns); continue; }
     let prev = new Uint8Array(stride);
     for (let y = 0; y < ph; y++) {
       const ft = raw[rp++];
